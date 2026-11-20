@@ -1,0 +1,13 @@
+@page "/demo"
+@inject IConfiguration Configuration
+<PageTitle>Demo sign in</PageTitle>
+<h1>Development test accounts</h1>
+@if (Configuration.GetValue<bool>("DemoMode"))
+{
+    <p class="subtle">These accounts are available only in the Development environment. The existing API must be running for live data. Test users only simulate frontend permissions; they do not secure the existing API.</p>
+    <div class="panel"><a class="button" href="/demo/login/read">Read-only user</a> <a class="button" href="/demo/login/admin">Read + Write user</a> <a class="button ghost" href="/demo/login/none">No permissions</a></div>
+}
+else
+{
+    <p>Development demo mode is disabled. <a href="/account/login">Log in with Auth0</a>.</p>
+}

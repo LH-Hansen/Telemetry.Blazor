@@ -1,0 +1,12 @@
+@page "/"
+<PageTitle>Telemetry | Home</PageTitle>
+<h1>Telemetry control center</h1>
+<p class="subtle">Temperature, humidity, pressure, light, and remotely controlled ventilation.</p>
+<AuthorizeView>
+    <Authorized>
+        <div class="panel"><h2>Signed in</h2><p>Use the navigation to access permitted functions.</p><p>Your current permissions: @string.Join(", ", context.User.FindAll("permissions").Select(c => c.Value))</p></div>
+    </Authorized>
+    <NotAuthorized>
+        <div class="panel"><h2>Sign in</h2><p>Only authenticated users can access telemetry or servo commands.</p><a class="button" href="/account/login">Sign in</a></div>
+    </NotAuthorized>
+</AuthorizeView>

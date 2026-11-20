@@ -1,0 +1,37 @@
+<div class="panel chartbox"><h2>@Title</h2>
+@if (ValidData.Count < 2) { <p class="subtle">At least two measurements are required.</p> }
+else
+{
+    <svg viewBox="0 0 600 200" role="img" aria-label="@Title chart" preserveAspectRatio="none">
+        <line x1="40" x2="585" y1="170" y2="170" stroke="#334155" />
+        <line x1="40" x2="40" y1="15" y2="170" stroke="#334155" />
+        <polyline points="@Points" fill="none" stroke="#22d3ee" stroke-width="2.5" vector-effect="non-scaling-stroke" />
+        <text x="4" y="20" fill="#94a3b8" font-size="12">@Max.ToString("F1") @Unit</text>
+        <text x="4" y="168" fill="#94a3b8" font-size="12">@Min.ToString("F1")</text>
+    </svg>
+    <div class="chartlabels"><span>@ValidData[0].Time.ToLocalTime().ToString("dd/MM HH:mm")</span><span>@ValidData[^1].Time.ToLocalTime().ToString("dd/MM HH:mm")</span></div>
+}
+</div>
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+    [Parameter] public string Unit { get; set; } = "";
+    [Parameter, EditorRequired] public IReadOnlyList<TelemetryReading> Data { get; set; } = [];
+    [Parameter, EditorRequired] public Func<TelemetryReading, double> ValueSelector { get; set; } = _ => 0;
+    private List<TelemetryReading> ValidData => Data.Where(r => double.IsFinite(ValueSelector(r))).ToList();
+    private double Min => Data.Count == 0 ? 0 : ValidData.Min(ValueSelector);
+    private double Max => Data.Count == 0 ? 1 : ValidData.Max(ValueSelector);
+    private string Points
+    {
+        get
+        {
+            if (ValidData.Count < 2) return "";
+            var min = Min; var spread = Math.Max(Max - min, .01);
+            return string.Join(" ", ValidData.Select((reading, index) =>
+            {
+                var x = 40 + index * 545.0 / (ValidData.Count - 1);
+                var y = 170 - (ValueSelector(reading) - min) * 150 / spread;
+                return $"{x.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)},{y.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)}";
+            }));
+        }
+    }
+}

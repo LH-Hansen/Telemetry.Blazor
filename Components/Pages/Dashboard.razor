@@ -1,0 +1,86 @@
+@page "/dashboard"
+@attribute [Authorize(Policy = "Read")]
+@inject TelemetryApiService Api
+@inject ILogger<Dashboard> Logger
+@implements IDisposable
+<PageTitle>Telemetry | Dashboard</PageTitle>
+<div class="heading"><div><h1>Live telemetry</h1><p class="subtle">Sensor readings and historical measurements</p></div><button @onclick="ReloadAsync" disabled="@loading">Refresh</button></div>
+
+@* Tidsfiltrering *@
+<div class="filters"><label>Time interval <select @bind="range" @bind:after="ReloadAsync">\
+    <option value="hour">Last hour</option>
+    <option value="day">Last day</option>
+    <option value="week">Last week</option>
+
+</select></label><span class="muted">@status</span></div>
+@if (!string.IsNullOrWhiteSpace(error))
+{
+    <div class="warning" role="alert">@error</div>
+}
+@if (data.Count > 0)
+{
+    var last = data[^1];
+    <div class="metrics">
+        <div class="panel metric"><span>Temperature</span><strong>@last.Temperature.ToString("F1") °C</strong></div>
+        <div class="panel metric"><span>Humidity</span><strong>@last.Humidity.ToString("F1") %</strong></div>
+        <div class="panel metric"><span>Pressure</span><strong>@(last.Pressure?.ToString("F1") ?? "—") hPa</strong></div>
+        <div class="panel metric"><span>Light</span><strong>@(last.Light?.ToString("F0") ?? "—")</strong></div>
+    </div>
+    <p class="subtle">Last sample: @last.Time.ToLocalTime().ToString("dd MMM yyyy HH:mm:ss") (local time)</p>
+    
+    @* Grafer *@
+    <div class="charts">
+        <TelemetryChart Title="Temperature" Unit="°C" Data="data" ValueSelector="@(r => r.Temperature)" />
+        <TelemetryChart Title="Humidity" Unit="%" Data="data" ValueSelector="@(r => r.Humidity)" />
+        <TelemetryChart Title="Pressure" Unit="hPa" Data="data" ValueSelector="@(r => r.Pressure ?? double.NaN)" />
+        <TelemetryChart Title="Light" Unit="" Data="data" ValueSelector="@(r => r.Light ?? double.NaN)" />
+    </div>
+}
+else if (!loading)
+{
+
+    <div class="panel">No telemetry available.</div>
+}
+@code {
+    private List<TelemetryReading> data = [];
+    private string range = "hour", status = "", error = "";
+    private bool loading;
+    private PeriodicTimer? timer;
+    private CancellationTokenSource? loopStop;
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadAsync();
+        loopStop = new CancellationTokenSource();
+        timer = new PeriodicTimer(TimeSpan.FromSeconds(20));
+        _ = RefreshLoop(loopStop.Token);
+    }
+    private async Task RefreshLoop(CancellationToken cancellationToken)
+    {
+        try
+        {
+            while (timer is not null && await timer.WaitForNextTickAsync(cancellationToken))
+                await InvokeAsync(ReloadAsync);
+        }
+        catch (OperationCanceledException) { }
+    }
+    private async Task ReloadAsync()
+    {
+        if (loading) return;
+        loading = true;
+        try
+        {
+            data = await Api.LoadAsync(range);
+            error = "";
+            status = $"Connected · {data.Count} samples";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Unable to load telemetry");
+            data = Api.FilterCached(range);
+            status = "Offline / API unavailable";
+            error = "Could not refresh; showing last available measurements if cached.";
+        }
+        finally { loading = false; }
+    }
+    public void Dispose() { loopStop?.Cancel(); timer?.Dispose(); loopStop?.Dispose(); }
+}

@@ -1,0 +1,12 @@
+@using Microsoft.AspNetCore.Components.Routing
+
+<Router AppAssembly="typeof(Program).Assembly">
+    <Found Context="routeData">
+        <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(MainLayout)">
+            <NotAuthorized>
+                <div class="panel"><h2>Authentication required</h2><p>Sign in to access this page.</p><a class="button" href="/account/login">Sign in</a></div>
+            </NotAuthorized>
+        </AuthorizeRouteView>
+        <FocusOnNavigate RouteData="routeData" Selector="h1" />
+    </Found>
+</Router>

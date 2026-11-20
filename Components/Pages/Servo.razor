@@ -1,0 +1,26 @@
+@page "/servo"
+@attribute [Authorize(Policy = "Write")]
+@inject TelemetryApiService Api
+<PageTitle>Servo | Control</PageTitle>
+<h1>Servo control</h1><p class="subtle">Send an MQTT command using the protected API.</p>
+
+@* Servo *@
+<div class="panel"><h2>Window / ventilation</h2>
+    <div class="actions">
+        <button disabled="@busy" @onclick="() => SendAsync(true)">Turn ON (90°)</button>
+        <button disabled="@busy" class="ghost" @onclick="() => SendAsync(false)">Turn OFF (0°)</button>
+    </div>
+    <p role="status">@message</p>
+</div>
+
+@code {
+    private bool busy;
+    private string message = "Ready";
+    private async Task SendAsync(bool enabled)
+    {
+        busy = true;
+        try { await Api.SetServoAsync(enabled); message = $"Command sent: {(enabled ? "ON" : "OFF")}"; }
+        catch (Exception ex) { message = $"Command failed: {ex.Message}"; }
+        finally { busy = false; }
+    }
+}

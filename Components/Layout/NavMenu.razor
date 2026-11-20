@@ -1,0 +1,6 @@
+<nav class="navmenu">
+    <a href="/">Overview</a>
+    <AuthorizeView Policy="Read"><Authorized><a href="/dashboard">Telemetry &amp; graphs</a></Authorized></AuthorizeView>
+    <AuthorizeView Policy="Write"><Authorized><a href="/servo">Servo control</a></Authorized></AuthorizeView>
+    <AuthorizeView><NotAuthorized><a href="/demo">Demo sign in</a></NotAuthorized></AuthorizeView>
+</nav>
